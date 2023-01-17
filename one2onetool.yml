@@ -10,7 +10,7 @@ stages:
   displayName: Build Docker Image and Push to ECR
   jobs:
   - job: Build
-    displayName: Build $(branchname)
+    displayName: Build
     pool: one2onetool
     steps:
     - task: NodeTool@0
@@ -30,7 +30,7 @@ stages:
       workingDirectory: '$(Build.SourcesDirectory)'
 
     - script: |
-        sed -i 's/DATA_FILE=""/DATA_FILE='$(datafile-$(branchname))'/' Dockerfile
+        sed -i 's/DATA_FILE=""/DATA_FILE='$(datafile-staging)'/' Dockerfile
         cat ./Dockerfile
       displayName: 'Update Dockerfile'
       workingDirectory: '$(Build.SourcesDirectory)'
@@ -50,3 +50,35 @@ stages:
         docker push $(repo-domain)/$(image-name):$(branchname).$(Build.BuildId)
       displayName: 'Push Image to ECR'
       workingDirectory: '$(Build.SourcesDirectory)'
+
+- stage: Deploy
+  displayName: Update ECS task definition and Redeploy Services
+  dependsOn: Build
+  condition: succeeded()
+  jobs:
+  - deployment: Deploy
+    displayName: Deploy
+    environment: one2onetool
+    pool: one2onetool
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - script: |
+              aws ecs describe-task-definition --task-definition $(taskfamily-release) \
+                --query 'taskDefinition.containerDefinitions[*]' \
+                > ./new.json
+              image=$(repo-domain)/$(image-name):$(branchname).$(Build.BuildId)
+              sed -i 's,"image":[^,]*,"image":"'"$image"'",' ./new.json
+              aws ecs register-task-definition --family $(taskfamily-release) --container-definitions file://new.json
+            displayName: 'Update ECS task definition'
+          - script: |
+              aws ecs describe-task-definition --task-definition $(taskfamily-release) \
+                --query 'taskDefinition.revision' \
+                > ./revision.json
+              revision=$(cat revision.json)
+              aws ecs update-service --service $(service-release) \
+                --cluster cicd-cluster \
+                --task-definition $(taskfamily-release):$revision \
+                --force-new-deployment
+            displayName: 'Redeploy the service'
