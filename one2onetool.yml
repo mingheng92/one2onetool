@@ -1,0 +1,25 @@
+trigger: none
+
+stages:
+- stage: Build
+  displayName: Build Stage
+  jobs:
+  - job: Build_Release
+    displayName: Build Release
+    pool: one2onetool
+    steps:
+    - task: NodeTool@0
+      inputs:
+        versionSpec: '10.x'
+      displayName: 'Install Node.js'
+
+    - task: DockerInstaller@0
+      inputs:
+        dockerVersion: '17.09.0-ce'
+      displayName: 'Install Docker'
+
+    - script: |
+        npm ci
+        npm test
+      displayName: 'npm ci and npm test'
+      workingDirectory: '$(Build.SourcesDirectory)'
