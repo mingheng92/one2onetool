@@ -1,4 +1,4 @@
-pr:
+trigger:
  branches:
    include:
      - release
@@ -40,6 +40,7 @@ stages:
 
     - script: |
         sed -i 's/DATA_FILE=""/DATA_FILE='$(datafile-${{ variables.branchname }})'/' Dockerfile
+        sed -i 's/PORT=""/PORT='$(port-${{ variables.branchname }})'/' Dockerfile
         cat ./Dockerfile
       displayName: 'Update Dockerfile'
       workingDirectory: '$(Build.SourcesDirectory)'
@@ -74,20 +75,20 @@ stages:
         deploy:
           steps:
           - script: |
-              aws ecs describe-task-definition --task-definition $(taskfamily-name) \
+              aws ecs describe-task-definition --task-definition $(taskfamily${{ variables.branchname }}) \
                 --query 'taskDefinition.containerDefinitions[*]' \
                 > ./new.json
               image=$(repo-domain)/$(image-name):$(branchname).$(Build.BuildId)
               sed -i 's,"image":[^,]*,"image":"'"$image"'",' ./new.json
-              aws ecs register-task-definition --family $(taskfamily-name) --container-definitions file://new.json
+              aws ecs register-task-definition --family $(taskfamily${{ variables.branchname }}) --container-definitions file://new.json
             displayName: 'Update ECS task definition'
           - script: |
-              aws ecs describe-task-definition --task-definition $(taskfamily-name) \
+              aws ecs describe-task-definition --task-definition $(taskfamily${{ variables.branchname }}) \
                 --query 'taskDefinition.revision' \
                 > ./revision.json
               revision=$(cat revision.json)
-              aws ecs update-service --service $(service-name) \
+              aws ecs update-service --service $(service${{ variables.branchname }}) \
                 --cluster mh-one2onetool \
-                --task-definition $(taskfamily-name):$revision \
+                --task-definition $(taskfamily${{ variables.branchname }}):$revision \
                 --force-new-deployment
             displayName: 'Redeploy the service'
