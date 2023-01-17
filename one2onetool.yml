@@ -65,20 +65,20 @@ stages:
         deploy:
           steps:
           - script: |
-              aws ecs describe-task-definition --task-definition $(taskfamily-release) \
+              aws ecs describe-task-definition --task-definition $(taskfamily-staging) \
                 --query 'taskDefinition.containerDefinitions[*]' \
                 > ./new.json
               image=$(repo-domain)/$(image-name):$(branchname).$(Build.BuildId)
               sed -i 's,"image":[^,]*,"image":"'"$image"'",' ./new.json
-              aws ecs register-task-definition --family $(taskfamily-release) --container-definitions file://new.json
+              aws ecs register-task-definition --family $(taskfamily-staging) --container-definitions file://new.json
             displayName: 'Update ECS task definition'
           - script: |
-              aws ecs describe-task-definition --task-definition $(taskfamily-release) \
+              aws ecs describe-task-definition --task-definition $(taskfamily-staging) \
                 --query 'taskDefinition.revision' \
                 > ./revision.json
               revision=$(cat revision.json)
-              aws ecs update-service --service $(service-release) \
+              aws ecs update-service --service $(service-staging) \
                 --cluster cicd-cluster \
-                --task-definition $(taskfamily-release):$revision \
+                --task-definition $(taskfamily-staging):$revision \
                 --force-new-deployment
             displayName: 'Redeploy the service'
