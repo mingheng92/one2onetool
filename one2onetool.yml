@@ -13,21 +13,21 @@ stages:
     displayName: Build ${{ variables.branchname }}
     pool: one2onetool
     steps:
-    # - task: NodeTool@0
-    #   inputs:
-    #     versionSpec: '16.x'
-    #   displayName: 'Install Node.js'
+    - task: NodeTool@0
+      inputs:
+        versionSpec: '16.x'
+      displayName: 'Install Node.js'
 
-#     - task: DockerInstaller@0
-#       inputs:
-#         dockerVersion: '17.09.0-ce'
-#       displayName: 'Install Docker'
+    - task: DockerInstaller@0
+      inputs:
+        dockerVersion: '17.09.0-ce'
+      displayName: 'Install Docker'
 
-#     - script: |
-#         npm ci
-#         npm test
-#       displayName: 'npm ci and npm test'
-#       workingDirectory: '$(Build.SourcesDirectory)'
+    - script: |
+        npm ci
+        npm test
+      displayName: 'npm ci and npm test'
+      workingDirectory: '$(Build.SourcesDirectory)'
 
     - script: |
         sed -i 's/DATA_FILE=""/DATA_FILE='$(datafile-${{ variables.branchname }})'/' Dockerfile
@@ -35,50 +35,50 @@ stages:
       displayName: 'Update Dockerfile'
       workingDirectory: '$(Build.SourcesDirectory)'
 
-#     - script: |
-#         aws ecr get-login-password --region ap-southeast-1 | docker login --username AWS --password-stdin $(repo-domain)
-#       displayName: 'ECR authentication'
-#       workingDirectory: '$(Build.SourcesDirectory)'
+    - script: |
+        aws ecr get-login-password --region ap-southeast-1 | docker login --username AWS --password-stdin $(repo-domain)
+      displayName: 'ECR authentication'
+      workingDirectory: '$(Build.SourcesDirectory)'
 
-#     - script: |
-#         docker build -t $(image-name):$(branchname).$(Build.BuildId) .
-#       displayName: 'docker build'
-#       workingDirectory: '$(Build.SourcesDirectory)'
+    - script: |
+        docker build -t $(image-name):$(branchname).$(Build.BuildId) .
+      displayName: 'docker build'
+      workingDirectory: '$(Build.SourcesDirectory)'
 
-#     - script: |
-#         docker tag $(image-name):$(branchname).$(Build.BuildId) $(repo-domain)/$(image-name):$(branchname).$(Build.BuildId)
-#         docker push $(repo-domain)/$(image-name):$(branchname).$(Build.BuildId)
-#       displayName: 'Push Image to ECR'
-#       workingDirectory: '$(Build.SourcesDirectory)'
+    - script: |
+        docker tag $(image-name):$(branchname).$(Build.BuildId) $(repo-domain)/$(image-name):$(branchname).$(Build.BuildId)
+        docker push $(repo-domain)/$(image-name):$(branchname).$(Build.BuildId)
+      displayName: 'Push Image to ECR'
+      workingDirectory: '$(Build.SourcesDirectory)'
 
-# - stage: Deploy
-#   displayName: Update ECS task definition and Redeploy Services
-#   dependsOn: Build
-#   condition: succeeded()
-#   jobs:
-#   - deployment: Deploy
-#     displayName: Deploy
-#     environment: one2onetool
-#     pool: one2onetool
-#     strategy:
-#       runOnce:
-#         deploy:
-#           steps:
-#           - script: |
-#               aws ecs describe-task-definition --task-definition $(taskfamily-staging) \
-#                 --query 'taskDefinition.containerDefinitions[*]' \
-#                 > ./new.json
-#               image=$(repo-domain)/$(image-name):$(branchname).$(Build.BuildId)
-#               sed -i 's,"image":[^,]*,"image":"'"$image"'",' ./new.json
-#               aws ecs register-task-definition --family $(taskfamily-staging) --container-definitions file://new.json
-#             displayName: 'Update ECS task definition'
-#           - script: |
-#               aws ecs describe-task-definition --task-definition $(taskfamily-staging) \
-#                 --query 'taskDefinition.revision' \
-#                 > ./revision.json
-#               revision=$(cat revision.json)
-#               aws ecs update-service --service $(service-staging) \
-#                 --cluster mh-one2onetool \
-#                 --task-definition $(taskfamily-staging):$revision \
-#                 --force-new-deployment
-#             displayName: 'Redeploy the service'
+- stage: Deploy
+  displayName: Update ECS task definition and Redeploy Services
+  dependsOn: Build
+  condition: succeeded()
+  jobs:
+  - deployment: Deploy
+    displayName: Deploy
+    environment: one2onetool
+    pool: one2onetool
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - script: |
+              aws ecs describe-task-definition --task-definition $(taskfamily-${{ variables.branchname }}) \
+                --query 'taskDefinition.containerDefinitions[*]' \
+                > ./new.json
+              image=$(repo-domain)/$(image-name):$(branchname).$(Build.BuildId)
+              sed -i 's,"image":[^,]*,"image":"'"$image"'",' ./new.json
+              aws ecs register-task-definition --family $(taskfamily-${{ variables.branchname }}) --container-definitions file://new.json
+            displayName: 'Update ECS task definition'
+          - script: |
+              aws ecs describe-task-definition --task-definition $(taskfamily-${{ variables.branchname }}) \
+                --query 'taskDefinition.revision' \
+                > ./revision.json
+              revision=$(cat revision.json)
+              aws ecs update-service --service $(service-${{ variables.branchname }}) \
+                --cluster mh-one2onetool \
+                --task-definition $(taskfamily-${{ variables.branchname }}):$revision \
+                --force-new-deployment
+            displayName: 'Redeploy the service'
