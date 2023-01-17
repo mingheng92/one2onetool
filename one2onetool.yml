@@ -1,4 +1,4 @@
-trigger:
+pr:
  branches:
    include:
      - release
@@ -74,20 +74,20 @@ stages:
         deploy:
           steps:
           - script: |
-              aws ecs describe-task-definition --task-definition $(taskfamily-${{ variables.branchname }}) \
+              aws ecs describe-task-definition --task-definition $(taskfamily-name) \
                 --query 'taskDefinition.containerDefinitions[*]' \
                 > ./new.json
               image=$(repo-domain)/$(image-name):$(branchname).$(Build.BuildId)
               sed -i 's,"image":[^,]*,"image":"'"$image"'",' ./new.json
-              aws ecs register-task-definition --family $(taskfamily-${{ variables.branchname }}) --container-definitions file://new.json
+              aws ecs register-task-definition --family $(taskfamily-name) --container-definitions file://new.json
             displayName: 'Update ECS task definition'
           - script: |
-              aws ecs describe-task-definition --task-definition $(taskfamily-${{ variables.branchname }}) \
+              aws ecs describe-task-definition --task-definition $(taskfamily-name) \
                 --query 'taskDefinition.revision' \
                 > ./revision.json
               revision=$(cat revision.json)
-              aws ecs update-service --service $(service-${{ variables.branchname }}) \
+              aws ecs update-service --service $(service-name) \
                 --cluster mh-one2onetool \
-                --task-definition $(taskfamily-${{ variables.branchname }}):$revision \
+                --task-definition $(taskfamily-name):$revision \
                 --force-new-deployment
             displayName: 'Redeploy the service'
