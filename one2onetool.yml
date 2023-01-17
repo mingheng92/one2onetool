@@ -1,9 +1,18 @@
-trigger: none
+trigger:
+ branches:
+   include:
+     - release
+     - staging
+# trigger: none
 
 variables:
 - group: one2onetool-var
-- name: branchname
-  value: 'staging'
+- ${{ if eq(variables['Build.SourceBranch'], 'refs/heads/release') }}:
+  - name: branchname
+    value: 'release'
+- ${{ if eq(variables['Build.SourceBranch'], 'refs/heads/staging') }}:
+  - name: branchname
+    value: 'staging'
 
 stages:
 - stage: Build
