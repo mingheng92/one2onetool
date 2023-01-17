@@ -1,8 +1,13 @@
 trigger: none
 
+variables:
+- group: one2onetool-var
+- name: branchname
+  value: 'staging'
+
 stages:
 - stage: Build
-  displayName: Build Stage
+  displayName: Build Docker Image and Push to ECR
   jobs:
   - job: Build_Release
     displayName: Build Release
@@ -22,4 +27,21 @@ stages:
         npm ci
         npm test
       displayName: 'npm ci and npm test'
+      workingDirectory: '$(Build.SourcesDirectory)'
+
+    - script: |
+        sed -i 's/DATA_FILE=""/DATA_FILE='$(datafile-release)'/' Dockerfile
+        cat ./Dockerfile
+      displayName: 'Update Dockerfile'
+      workingDirectory: '$(Build.SourcesDirectory)'
+
+    - script: |
+        docker build -t $(image-name):$(branchname).$(Build.BuildId) .
+      displayName: 'docker build'
+      workingDirectory: '$(Build.SourcesDirectory)'
+
+    - script: |
+        docker tag $(image-name):$(branchname).$(Build.BuildId) $(repo-domain)/$(image-name):$(branchname).$(Build.BuildId)
+        docker push $(repo-domain)/$(image-name):$(branchname).$(Build.BuildId)
+      displayName: 'Push Image to ECR'
       workingDirectory: '$(Build.SourcesDirectory)'
