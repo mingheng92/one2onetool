@@ -9,7 +9,7 @@ stages:
 - stage: Build
   displayName: Build Docker Image and Push to ECR
   jobs:
-  - job: Build_$(branchname)
+  - job: Build
     displayName: Build $(branchname)
     pool: one2onetool
     steps:
