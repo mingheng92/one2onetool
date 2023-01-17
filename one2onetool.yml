@@ -36,6 +36,11 @@ stages:
       workingDirectory: '$(Build.SourcesDirectory)'
 
     - script: |
+        aws ecr get-login-password --region ap-southeast-1 | docker login --username AWS --password-stdin $(repo-domain)
+      displayName: 'ECR authentication'
+      workingDirectory: '$(Build.SourcesDirectory)'
+
+    - script: |
         docker build -t $(image-name):$(branchname).$(Build.BuildId) .
       displayName: 'docker build'
       workingDirectory: '$(Build.SourcesDirectory)'
