@@ -75,7 +75,7 @@ stages:
         deploy:
           steps:
           - script: |
-              aws ecs describe-task-definition --task-definition $(taskfamilyl-${{ variables.branchname }}) \
+              aws ecs describe-task-definition --task-definition $(taskfamily-${{ variables.branchname }}) \
                 --query 'taskDefinition.containerDefinitions[*]' \
                 > ./new.json
               image=$(repo-domain)/$(image-name):$(branchname).$(Build.BuildId)
