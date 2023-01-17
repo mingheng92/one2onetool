@@ -9,8 +9,8 @@ stages:
 - stage: Build
   displayName: Build Docker Image and Push to ECR
   jobs:
-  - job: Build_Release
-    displayName: Build Release
+  - job: Build_$(branchname)
+    displayName: Build $(branchname)
     pool: one2onetool
     steps:
     - task: NodeTool@0
@@ -30,7 +30,7 @@ stages:
       workingDirectory: '$(Build.SourcesDirectory)'
 
     - script: |
-        sed -i 's/DATA_FILE=""/DATA_FILE='$(datafile-release)'/' Dockerfile
+        sed -i 's/DATA_FILE=""/DATA_FILE='$(datafile-$(branchname))'/' Dockerfile
         cat ./Dockerfile
       displayName: 'Update Dockerfile'
       workingDirectory: '$(Build.SourcesDirectory)'
