@@ -1,5 +1,6 @@
 FROM node:16
 ENV DATA_FILE=""
+ENV PORT=""
 RUN mkdir /home/one2onetool
 COPY . /home/one2onetool
 RUN cd /home/one2onetool
