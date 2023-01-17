@@ -78,7 +78,7 @@ stages:
                 > ./revision.json
               revision=$(cat revision.json)
               aws ecs update-service --service $(service-staging) \
-                --cluster cicd-cluster \
+                --cluster mh-one2onetool \
                 --task-definition $(taskfamily-staging):$revision \
                 --force-new-deployment
             displayName: 'Redeploy the service'
